@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   Archive,
   Bell,
@@ -12,6 +12,7 @@ import { useTags } from '@/hooks/useCategories'
 import { useAppStore } from '@/store/useAppStore'
 import { TodoList } from '@/components/todos/TodoList'
 import { ReminderSection } from '@/components/reminders/ReminderSection'
+import { RichTextEditor } from '@/components/notes/RichTextEditor'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import type { NoteStatus } from '@/types'
@@ -36,10 +37,12 @@ export function NoteEditor() {
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showReminderPanel, setShowReminderPanel] = useState(false)
 
+  const saveTimeoutRef = useRef<NodeJS.Timeout>()
+
   useEffect(() => {
     if (note) {
       setTitle(note.title)
-      setContent(note.content)
+      setContent(note.content || '')
     }
   }, [note?.id])
 
@@ -48,11 +51,27 @@ export function NoteEditor() {
       if (!note) return
       updateNote.mutate({ id: note.id, req: { title: newTitle, content: newContent } })
     },
-    [note?.id]
+    [note, updateNote]
+  )
+
+  const debouncedSave = useCallback(
+    (newTitle: string, newContent: string) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        save(newTitle, newContent)
+      }, 1000)
+    },
+    [save]
   )
 
   const handleTitleBlur = () => save(title, content)
-  const handleContentBlur = () => save(title, content)
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent)
+    debouncedSave(title, newContent)
+  }
 
   const handleStatusChange = (status: NoteStatus) => {
     if (!note) return
@@ -222,7 +241,7 @@ export function NoteEditor() {
       )}
 
       {/* Editor area */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col">
         <input
           type="text"
           value={title}
@@ -235,13 +254,13 @@ export function NoteEditor() {
         {note.is_todo_list ? (
           <TodoList noteId={note.id} items={note.todo_items} />
         ) : (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onBlur={handleContentBlur}
-            placeholder="Start writing…"
-            className="h-full min-h-[300px] w-full resize-none bg-transparent text-base text-gray-700 placeholder:text-gray-300 focus:outline-none dark:text-gray-200 dark:placeholder:text-gray-600"
-          />
+          <div className="flex-1 overflow-hidden">
+            <RichTextEditor
+              content={content}
+              onContentChange={handleContentChange}
+              editable={true}
+            />
+          </div>
         )}
       </div>
 

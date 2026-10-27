@@ -66,6 +66,11 @@ Produces a platform installer in `src-tauri/target/release/bundle/`.
 | `npm run test` | Vitest unit tests |
 | `npm run test:watch` | Vitest in watch mode |
 
+
+## Product strategy
+
+- [STEM Adventure App Strategy and Backlog (Grades 3–6)](STEM_APP_STRATEGY_AND_BACKLOG.md)
+
 ## Architecture
 
 ```
